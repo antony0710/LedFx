@@ -137,7 +137,7 @@ class AudioInputSource:
     def input_devices():
         hostapis = AudioInputSource.query_hostapis()
         devices = AudioInputSource.query_devices()
-        return {
+        devices_dict = {
             idx: f"{hostapis[device['hostapi']]['name']}: {device['name']}"
             for idx, device in enumerate(devices)
             if (
@@ -145,7 +145,10 @@ class AudioInputSource:
                 and "asio" not in device["name"].lower()
             )
         }
-
+        # Add a virtual device for System Default
+        devices_dict[-1] = "系統預設輸出設備"
+        return devices_dict
+    
     @staticmethod
     @property
     def AUDIO_CONFIG_SCHEMA():
@@ -252,6 +255,13 @@ class AudioInputSource:
         _LOGGER.debug(
             f"default_device: {default_device} config_device: {device_idx}"
         )
+        # If configured for System Default (-1), resolve it now
+        if device_idx == -1:
+            _LOGGER.info("Audio device set to System Default. Resolving current default device...")
+            if default_device is not None:
+                device_idx = default_device
+            else:
+                _LOGGER.warning("Could not resolve System Default device.")
 
         if device_idx > max(valid_device_indexes):
             _LOGGER.warning(
